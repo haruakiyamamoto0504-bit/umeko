@@ -3,444 +3,344 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>オセロゲーム</title>
+    <title>うめこのオセロ（ふたり対戦）</title>
     <style>
-        /* 基本スタイル */
-        body {
-            font-family: 'Arial', sans-serif;
-            text-align: center;
-            margin: 20px;
-            background-color: #f4f4f9;
+        :root {
+            --bg-color: #0d0f18;
+            --card-bg: rgba(20, 24, 39, 0.85);
+            --accent-color: #FF00C4;
+            --text-color: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border-color: rgba(255, 255, 255, 0.1);
         }
 
-        /* タイトルのスタイル */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background-image: radial-gradient(circle at 10% 20%, rgba(255, 0, 196, 0.08) 0%, transparent 40%),
+                              radial-gradient(circle at 90% 80%, rgba(0, 150, 255, 0.08) 0%, transparent 40%);
+        }
+
+        .container {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+        }
+
         h1 {
-            color: #333;
+            font-size: 1.8rem;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #fff, var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 16px;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        .score-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .score-box.active {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px rgba(255, 0, 196, 0.3);
+        }
+
+        #message {
+            margin-bottom: 16px;
+            font-size: 1rem;
+            height: 1.5rem;
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        /* オセロ盤 */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            background-color: #0b2e13;
+            border: 6px solid #134e21;
+            border-radius: 12px;
+            aspect-ratio: 1;
+            padding: 4px;
             margin-bottom: 20px;
         }
 
-        /* ゲームボード全体のスタイル */
-        #game-board {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr); /* セルの幅を均等にする */
-            gap: 5px;
-            width: 100%;
-            max-width: 480px; /* 最大幅を480pxに制限 */
-            background-color: #2c7a7b;
-            padding: 10px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            justify-content: center; /* フレックスボックスで水平中央揃え */
-            align-items: center; /* 垂直方向の中央揃え */
-        }
-
-        /* ボードの外側を中央揃えにするための親要素（スマホ対応用） */
-        #game-container {
-            display: flex; /* フレックスボックスを使用 */
-            justify-content: center; /* 水平方向に中央揃え */
-            align-items: center; /* 垂直方向に中央揃え */
-            flex-direction: column; /* 縦方向に要素を並べる */
-            min-height: 100vh; /* 画面全体をカバー */
-            width: 100%; /* 親要素の幅を100%に */
-            box-sizing: border-box; /* パディングを含めた幅計算 */
-        }
-
-        /* 各セルのスタイル */
         .cell {
-            aspect-ratio: 1 / 1; /* セルを正方形にする */
-            background-color: #3aafa9;
+            background-color: #1e7e34;
+            border-radius: 4px;
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
             cursor: pointer;
             position: relative;
-            border-radius: 5px;
         }
 
-        /* セルのホバー時の効果 */
         .cell:hover {
-            background-color: #76e1e3;
+            background-color: #28a745;
         }
 
-        /* 駒のスタイル */
-        .piece {
-            width: 80%; /* 駒のサイズをセルに対して相対的に */
-            height: 80%; /* 駒のサイズをセルに対して相対的に */
+        /* 碁石 */
+        .disc {
+            width: 80%;
+            height: 80%;
+            border-radius: 50%;
+            transition: transform 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .disc.black {
+            background: radial-gradient(circle at 30% 30%, #555, #111);
+        }
+
+        .disc.white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+        }
+
+        /* 置ける場所のヒント */
+        .hint::after {
+            content: '';
+            width: 30%;
+            height: 30%;
+            background-color: rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             position: absolute;
         }
 
-        /* 黒駒のスタイル */
-        .black {
-            background-color: #2f2f2f;
-        }
-
-        /* 白駒のスタイル */
-        .white {
-            background-color: #ffffff;
-        }
-
-        /* コントロールボタンのスタイル */
-        .controls {
-            margin: 20px;
-        }
-
-        .button {
-            font-size: 1rem; /* レスポンシブなフォントサイズ */
-            padding: 10px 20px;
-            margin: 5px;
+        .reset-btn {
+            background-color: var(--accent-color);
+            color: white;
             border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        /* ボタンのホバー時のエフェクト */
-        .button:hover {
-            transform: scale(1.05);
-            opacity: 0.9;
-        }
-
-        /* 無効化されたボタンのスタイル */
-        .button:disabled {
-            background-color: #ccc;
-            color: #666;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        /* 各ボタンの固有スタイル */
-        .pass-button {
-            background-color: #ffcc00;
-            color: #333;
-        }
-
-        .reset-button {
-            background-color: #e74c3c;
-            color: #fff;
-        }
-
-        .auto-button {
-            background-color: #3498db;
-            color: #fff;
-        }
-
-        /* パスメッセージのスタイル */
-        #pass-message {
-            font-size: 1.2rem; /* フォントサイズをレスポンシブに */
-            font-weight: bold;
-            background: linear-gradient(90deg, #ff7e5f, #feb47b);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-            padding: 5px 10px;
-            display: inline-block;
-        }
-
-        /* 自動モードの状態表示 */
-        #auto-mode-status {
+            padding: 10px 24px;
             font-size: 1rem;
             font-weight: bold;
-            margin: 10px 0;
-            color: #3498db;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
         }
 
-        /* メディアクエリで小さい画面用に調整 */
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 1.5rem;
-            }
-
-            #game-board {
-                gap: 3px;
-            }
-
-            .cell {
-                border-radius: 3px;
-            }
-
-            .piece {
-                width: 70%;
-                height: 70%;
-            }
-
-            .button {
-                font-size: 0.9rem;
-                padding: 8px 16px;
-            }
-
-            #pass-message {
-                font-size: 1rem;
-            }
+        .reset-btn:hover {
+            background-color: #e000ad;
+            transform: translateY(-2px);
         }
     </style>
 </head>
 <body>
-    <div id="game-container">
-        <h1>オセロゲーム</h1>
-        <div id="game-board"></div>
-        <div id="turn-indicator">現在のターン: 黒</div>
-        <div class="controls">
-            <!-- 各操作ボタン -->
-            <button class="button pass-button" id="pass-button">パス</button>
-            <button class="button reset-button" id="reset-button">リセット</button>
-            <button class="button auto-button" id="auto-button">自動モード</button>
+
+    <div class="container">
+        <h1>うめこのオセロ</h1>
+        
+        <div class="scoreboard">
+            <div id="score-black" class="score-box active">黒 (P1) : <span id="black-count">2</span></div>
+            <div id="score-white" class="score-box">白 (P2) : <span id="white-count">2</span></div>
         </div>
-        <div>
-            <p>スコア - 黒: <span id="black-score">0</span> 白: <span id="white-score">0</span></p>
-        </div>
-        <h2 id="result"></h2>
-        <p id="pass-message"></p>
-        <p id="auto-mode-status">自動モード: オフ</p>
+
+        <div id="message">黒（プレイヤー1）の番です</div>
+
+        <div class="board" id="board"></div>
+
+        <button class="reset-btn" onclick="resetGame()">もう一度やり直す</button>
     </div>
+
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // 変数の初期化
-            const boardSize = 8;
-            let board = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
-            let currentPlayer = 'black';
-            let autoMode = false;
+        const boardElement = document.getElementById('board');
+        const messageElement = document.getElementById('message');
+        const blackCountElement = document.getElementById('black-count');
+        const whiteCountElement = document.getElementById('white-count');
+        const scoreBlack = document.getElementById('score-black');
+        const scoreWhite = document.getElementById('score-white');
 
-            // ボードの初期化
-            function initializeBoard() {
-                board = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
-                board[3][3] = 'white';
-                board[3][4] = 'black';
-                board[4][3] = 'black';
-                board[4][4] = 'white';
-                currentPlayer = 'black';
-                autoMode = false;
-                updateAutoModeStatus();
-                updateScores();
-                updateTurnIndicator();
-                togglePassButton();
-                document.getElementById('pass-message').textContent = '';
-                document.getElementById('result').textContent = '';
-                drawBoard();
-            }
+        let board = [];
+        let currentPlayer = 'black'; // 'black' または 'white'
+        const DIRECTIONS = [
+            [-1, -1], [-1, 0], [-1, 1],
+            [0, -1],           [0, 1],
+            [1, -1],  [1, 0],  [1, 1]
+        ];
 
-            const gameBoard = document.getElementById('game-board');
+        function initGame() {
+            board = Array(8).fill(null).map(() => Array(8).fill(null));
+            board[3][3] = 'white';
+            board[3][4] = 'black';
+            board[4][3] = 'black';
+            board[4][4] = 'white';
+            currentPlayer = 'black';
+            render();
+        }
 
-            // ボードを描画する関数
-            function drawBoard() {
-                gameBoard.innerHTML = ''; // ボードを一旦クリア
-                for (let row = 0; row < boardSize; row++) { // 各行をループ
-                    for (let col = 0; col < boardSize; col++) { // 各列をループ
-                        const cell = document.createElement('div'); // 新しいセル要素を作成
-                        cell.className = 'cell'; // セルにクラスを設定
-                        cell.dataset.row = row; // セルに行番号を設定
-                        cell.dataset.col = col; // セルに列番号を設定
-
-                        if (board[row][col]) { // セルに駒が置かれている場合
-                            const piece = document.createElement('div'); // 駒を表す要素を作成
-                            piece.className = `piece ${board[row][col]}`; // 駒のクラスを設定（黒または白）
-                            cell.appendChild(piece); // セルに駒を追加
-                        }
-
-                        // セルにクリックイベントを追加（駒を置く処理）
-                        cell.addEventListener('click', () => handleMove(row, col));
-
-                        gameBoard.appendChild(cell); // セルをボードに追加
-                    }
-                }
-                checkGameOver(); // ゲーム終了判定を実行
-            }
-
-            // 駒を置いた際の処理を行う関数
-            function handleMove(row, col) {
-                if (board[row][col] !== null) return; // 既に駒が置かれている場合は処理を終了
-
-                const flips = getFlips(row, col, currentPlayer); // 指定した位置でひっくり返せる駒を取得
-                if (flips.length > 0) { // ひっくり返せる駒がある場合
-                    board[row][col] = currentPlayer; // 現在のプレイヤーの駒を指定した位置に置く
-                    flips.forEach(([r, c]) => (board[r][c] = currentPlayer)); // 取得した駒を全てひっくり返す
-                    passCount = 0; // パスカウントをリセット
-                    currentPlayer = currentPlayer === 'black' ? 'white' : 'black'; // プレイヤーを交代
-                    document.getElementById('pass-message').textContent = ''; // パスメッセージをクリア
-                    updateScores();
-                    updateTurnIndicator();
-                    drawBoard(); // ボードを再描画
-
-                    if (currentPlayer === 'white' && !autoMode) { // 白プレイヤーかつ自動モードがオフの場合
-                        setTimeout(computerMove, 500); // 500ミリ秒後にコンピューターの動きを実行
+        function getValidMoves(player) {
+            let moves = [];
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (isValidMove(r, c, player)) {
+                        moves.push({r, c});
                     }
                 }
             }
+            return moves;
+        }
 
-            // 指定した位置に駒を置いたときにひっくり返す駒を取得する関数
-            function getFlips(row, col, player) {
-                // 8方向の移動を表す配列
-                const directions = [
-                    [-1, 0], [1, 0], [0, -1], [0, 1], // 縦と横の方向
-                    [-1, -1], [-1, 1], [1, -1], [1, 1] // 斜めの方向
-                ];
-                const flips = []; // ひっくり返す駒の位置を格納する配列
+        function isValidMove(r, c, player) {
+            if (board[r][c] !== null) return false;
+            const opponent = player === 'black' ? 'white' : 'black';
 
-                // 各方向に対して駒を調べる
-                directions.forEach(([dr, dc]) => {
-                    const line = []; // 一方向に並ぶ相手の駒を一時的に保存する配列
-                    let r = row + dr; // 次に調べる行
-                    let c = col + dc; // 次に調べる列
+            for (let [dr, dc] of DIRECTIONS) {
+                let nr = r + dr, nc = c + dc;
+                let hasOpponentBetween = false;
 
-                    // ボードの範囲内で駒をチェック
-                    while (r >= 0 && r < boardSize && c >= 0 && c < boardSize) {
-                        if (board[r][c] === null) break; // 空白のマスなら終了
-                        if (board[r][c] === player) {
-                            // 自分の駒に到達した場合、これまでの駒をひっくり返すリストに追加
-                            flips.push(...line);
-                            break;
-                        }
-                        // 相手の駒を一時保存
-                        line.push([r, c]);
-                        r += dr; // 次の行に進む
-                        c += dc; // 次の列に進む
+                while (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && board[nr][nc] === opponent) {
+                    hasOpponentBetween = true;
+                    nr += dr;
+                    nc += dc;
+                }
+
+                if (hasOpponentBetween && nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && board[nr][nc] === player) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function makeMove(r, c) {
+            const opponent = currentPlayer === 'black' ? 'white' : 'black';
+            let flipped = false;
+
+            for (let [dr, dc] of DIRECTIONS) {
+                let nr = r + dr, nc = c + dc;
+                let toFlip = [];
+
+                while (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && board[nr][nc] === opponent) {
+                    toFlip.push({r: nr, c: nc});
+                    nr += dr;
+                    nc += dc;
+                }
+
+                if (toFlip.length > 0 && nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && board[nr][nc] === currentPlayer) {
+                    board[r][c] = currentPlayer;
+                    for (let f of toFlip) {
+                        board[f.r][f.c] = currentPlayer;
                     }
-                });
-
-                return flips; // ひっくり返す駒のリストを返す
+                    flipped = true;
+                }
             }
 
-            // コンピューターのターンを実行する関数
-            function computerMove() {
-                let moveMade = false; // 駒を置けたかどうかのフラグ
+            if (flipped) {
+                currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+                
+                let validMoves = getValidMoves(currentPlayer);
+                if (validMoves.length === 0) {
+                    currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+                    validMoves = getValidMoves(currentPlayer);
+                    if (validMoves.length === 0) {
+                        endGame();
+                        return;
+                    } else {
+                        alert((currentPlayer === 'black' ? '白' : '黒') + 'は置ける場所がないためパスします。');
+                    }
+                }
+                render();
+            }
+        }
 
-                // 全てのマスをチェック
-                for (let row = 0; row < boardSize; row++) {
-                    for (let col = 0; col < boardSize; col++) {
-                        if (board[row][col] === null) { // 空白のマスが対象
-                            const flips = getFlips(row, col, currentPlayer); // ひっくり返せる駒を取得
-                            if (flips.length > 0) { // ひっくり返せる場合
-                                board[row][col] = currentPlayer; // 現在の駒を配置
-                                flips.forEach(([r, c]) => (board[r][c] = currentPlayer)); // 駒をひっくり返す
-                                currentPlayer = currentPlayer === 'black' ? 'white' : 'black'; // プレイヤーを交代
-                                moveMade = true; // 駒を置けたフラグを更新
-                                document.getElementById('pass-message').textContent = ''; // パスメッセージをクリア
-                                updateScores();
-                                updateTurnIndicator();
-                                drawBoard(); // ボードを再描画
+        function render() {
+            boardElement.innerHTML = '';
+            let blackCount = 0;
+            let whiteCount = 0;
+            const validMoves = getValidMoves(currentPlayer);
 
-                                if (autoMode) {
-                                    setTimeout(computerMove, 500); // 自動モードの場合、再帰的に次のターンを実行
-                                }
-                                return; // 処理を終了
-                            }
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+
+                    if (board[r][c] === 'black') {
+                        const disc = document.createElement('div');
+                        disc.className = 'disc black';
+                        cell.appendChild(disc);
+                        blackCount++;
+                    } else if (board[r][c] === 'white') {
+                        const disc = document.createElement('div');
+                        disc.className = 'disc white';
+                        cell.appendChild(disc);
+                        whiteCount++;
+                    } else {
+                        if (validMoves.some(m => m.r === r && m.c === c)) {
+                            cell.classList.add('hint');
+                            cell.onclick = () => {
+                                makeMove(r, c);
+                            };
                         }
                     }
-                }
 
-                // 駒を置けなかった場合（パス）
-                if (!moveMade) {
-                    const playerName = currentPlayer === 'black' ? '黒' : '白'; // 現在のプレイヤー名を取得
-                    document.getElementById('pass-message').textContent = `${playerName}がパスしました`; // パスメッセージを表示
-                    currentPlayer = currentPlayer === 'black' ? 'white' : 'black'; // プレイヤーを交代
-
-                    if (autoMode) {
-                        setTimeout(computerMove, 500); // 自動モードの場合、再帰的に次のターンを実行
-                    }
+                    boardElement.appendChild(cell);
                 }
             }
 
-            let passCount = 0; // 連続パスのカウント
+            blackCountElement.textContent = blackCount;
+            whiteCountElement.textContent = whiteCount;
 
-            // パスの処理を行う関数
-            function handlePass() {
-                const playerName = currentPlayer === 'black' ? '黒' : '白';
-                document.getElementById('pass-message').textContent = `${playerName}がパスしました`;
-                passCount++; // パスカウントを増加
-
-                if (passCount >= 2) { // 連続で両者がパスした場合
-                    endGame(); // ゲームを終了
-                    return;
-                }
-
-                currentPlayer = currentPlayer === 'black' ? 'white' : 'black'; // プレイヤーを交代
-                if (currentPlayer === 'white' && autoMode) { // 自動モードで白プレイヤーの場合
-                    setTimeout(computerMove, 500);
-                }
+            if (currentPlayer === 'black') {
+                messageElement.textContent = '黒（プレイヤー1）の番です';
+                scoreBlack.classList.add('active');
+                scoreWhite.classList.remove('active');
+            } else {
+                messageElement.textContent = '白（プレイヤー2）の番です';
+                scoreWhite.classList.add('active');
+                scoreBlack.classList.remove('active');
             }
+        }
 
-            // ゲームが終了したかどうかを判定する関数
-            function checkGameOver() {
-                const flatBoard = board.flat(); // ボードを1次元の配列に変換
-                if (!flatBoard.includes(null)) { // 空白のマスがない場合、ゲーム終了
-                    autoMode = false; // 自動モードをオフにする
-                    updateAutoModeStatus(); // 自動モードのステータスを更新
-                    document.getElementById('pass-button').disabled = true; // パスボタンを無効化する
-
-                    // 黒と白の駒の数をカウント
-                    const blackCount = flatBoard.filter(cell => cell === 'black').length;
-                    const whiteCount = flatBoard.filter(cell => cell === 'white').length;
-
-                    // 結果を判定してテキストを作成
-                    const resultText = blackCount > whiteCount
-                        ? `黒の勝ち！ ${blackCount} 対 ${whiteCount}` // 黒の勝利
-                        : whiteCount > blackCount
-                        ? `白の勝ち！ ${whiteCount} 対 ${blackCount}` // 白の勝利
-                        : `引き分け！ ${blackCount} 対 ${whiteCount}`; // 引き分け
-
-                    // 結果を画面に表示
-                    document.getElementById('result').textContent = resultText;
+        function endGame() {
+            let black = 0, white = 0;
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (board[r][c] === 'black') black++;
+                    if (board[r][c] === 'white') white++;
                 }
             }
 
-            // パスボタンのクリックイベントを設定
-            document.getElementById('pass-button').addEventListener('click', () => {
-                handlePass();
-                const playerName = currentPlayer === 'black' ? '黒' : '白'; // 現在のプレイヤー名を取得
-                document.getElementById('pass-message').textContent = `${playerName}がパスしました`; // パスメッセージを表示
-                currentPlayer = currentPlayer === 'black' ? 'white' : 'black'; // プレイヤーを交代
-                if (currentPlayer === 'white') { // 白プレイヤーの場合
-                    setTimeout(computerMove, 500); // 500ミリ秒後にコンピューターの動きを実行
-                }
-            });
+            let result = '';
+            if (black > white) result = '黒（プレイヤー1）の勝ちです！🎉';
+            else if (white > black) result = '白（プレイヤー2）の勝ちです！🎉';
+            else result = '引き分けです！';
 
-            // パスボタンの有効/無効を切り替える関数
-            function togglePassButton() {
-                document.getElementById('pass-button').disabled = autoMode; // 自動モードがオンの場合はボタンを無効化
-            }
+            messageElement.textContent = `ゲーム終了！ ${result}`;
+        }
 
-            // スコアを更新する関数
-            function updateScores() {
-                // ボードを1次元配列に変換
-                const flatBoard = board.flat();
-                // 黒の駒の数を数え、対応する要素に表示
-                document.getElementById('black-score').textContent = flatBoard.filter(cell => cell === 'black').length;
-                // 白の駒の数を数え、対応する要素に表示
-                document.getElementById('white-score').textContent = flatBoard.filter(cell => cell === 'white').length;
-            }
+        function resetGame() {
+            initGame();
+        }
 
-            // 現在のターンを画面に表示する関数
-            function updateTurnIndicator() {
-                // 現在のプレイヤーに応じて「黒」または「白」を取得
-                const playerName = currentPlayer === 'black' ? '黒' : '白';
-                // 現在のターンを表示エリアに更新
-                document.getElementById('turn-indicator').textContent = `現在のターン: ${playerName}`;
-            }
-
-            // リセットボタンのクリックイベントを設定
-            document.getElementById('reset-button').addEventListener('click', () => {
-                initializeBoard(); // ボードを初期化
-                document.getElementById('pass-button').disabled = false; // パスボタンを有効化
-            });
-
-            // 自動モードボタンのクリックイベントを設定
-            document.getElementById('auto-button').addEventListener('click', () => {
-                autoMode = !autoMode; // 自動モードのオン/オフを切り替え
-                updateAutoModeStatus(); // 自動モードのステータスを更新
-                togglePassButton(); // パスボタンの状態を更新
-                if (autoMode) { // 自動モードがオンの場合
-                    computerMove(); // コンピューターの動きを開始
-                }
-            });
-
-            // 自動モードのステータスを更新する関数
-            function updateAutoModeStatus() {
-                const status = autoMode ? 'オン' : 'オフ'; // 自動モードの状態をテキストで取得
-                document.getElementById('auto-mode-status').textContent = `自動モード: ${status}`; // 画面に状態を表示
-            }
-
-            initializeBoard();
-        });
+        initGame();
     </script>
 </body>
 </html>
